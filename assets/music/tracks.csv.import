@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dmryx14itwg46"
+
+[deps]
+
+files=["res://assets/music/tracks.Millenia.translation", "res://assets/music/tracks.00:00:00.translation"]
+
+source_file="res://assets/music/tracks.csv"
+dest_files=["res://assets/music/tracks.Millenia.translation", "res://assets/music/tracks.00:00:00.translation"]
+
+[params]
+
+compress=true
+delimiter=0

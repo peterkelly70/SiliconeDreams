@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://tb7taukkfl7x"
+
+[deps]
+
+files=["res://assets/music/licenses.Track.translation", "res://assets/music/licenses.Attribution.translation"]
+
+source_file="res://assets/music/licenses.csv"
+dest_files=["res://assets/music/licenses.Track.translation", "res://assets/music/licenses.Attribution.translation"]
+
+[params]
+
+compress=true
+delimiter=0

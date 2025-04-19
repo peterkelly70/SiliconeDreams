@@ -1,0 +1,5 @@
+.git-tools
+*.mp3
+.godot/
+assets/music/neon.skylines.mp3
+.godot/imported/*.mp3str

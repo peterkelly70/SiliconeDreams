@@ -1,0 +1,71 @@
+[gd_scene load_steps=3 format=3 uid="uid://cwmghqry3qoo6"]
+
+[ext_resource type="Script" uid="uid://mmniyxnb8w3p" path="res://scripts/test.gd" id="1_bl13t"]
+[ext_resource type="Texture2D" uid="uid://ccwn083im7gst" path="res://assets/images/splash.png" id="2_bl13t"]
+
+[node name="Test" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bl13t")
+
+[node name="Puzzle" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -102.0
+offset_top = -294.0
+offset_right = 551.0
+offset_bottom = 316.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture = ExtResource("2_bl13t")
+expand_mode = 1
+
+[node name="ClueLayer" type="Control" parent="Puzzle"]
+z_index = 10
+layout_mode = 1
+anchors_preset = 0
+offset_left = 1.0
+offset_top = -2.0
+offset_right = 117.0
+offset_bottom = 121.0
+mouse_default_cursor_shape = 2
+
+[node name="Menu" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 56.0
+offset_top = 50.0
+offset_right = 450.0
+offset_bottom = 560.0
+
+[node name="GenerateBTN" type="Button" parent="Menu"]
+layout_mode = 2
+text = "Generate
+"
+
+[node name="LoadBTN" type="Button" parent="Menu"]
+layout_mode = 2
+text = "Load
+"
+
+[node name="SolveBTN" type="Button" parent="Menu"]
+layout_mode = 2
+text = "Solve
+"
+
+[node name="PlayBTN" type="Button" parent="Menu"]
+layout_mode = 2
+text = "Play"
+
+[node name="Button" type="Button" parent="Menu"]
+layout_mode = 2
+text = "Check"
