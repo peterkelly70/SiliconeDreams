@@ -1,0 +1,23 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="SiliconeDreams"
+run/main_scene="uid://dc0aiw8pt4k0q"
+config/features=PackedStringArray("4.4")
+
+[autoload]
+
+StateManager="*res://scripts/state_manager.gd"
+
+[rendering]
+
+quality/intended_usage/framebuffer_allocation=2
