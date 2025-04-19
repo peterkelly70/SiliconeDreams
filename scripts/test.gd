@@ -48,6 +48,19 @@ func _on_solve_pressed() -> void:
 	if data.size() == 0:
 		return
 	_render_full_puzzle(data)
+	
+	# Add a visual indicator that we're showing the solution
+	var label = Label.new()
+	label.text = "Solution View"
+	label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.2))
+	label.position = Vector2(puzzle_display.size.x - 120, 10)
+	
+	# Remove old indicator if it exists
+	for child in clue_layer.get_children():
+		if child is Label and (child.text == "Play Mode" or child.text == "Solution View"):
+			child.queue_free()
+	
+	clue_layer.add_child(label)
 
 # Enter play mode
 func _on_play_pressed() -> void:
@@ -87,18 +100,18 @@ func _on_puzzle_clicked(event: InputEvent) -> void:
 	var margin_left: int = int(margins.x)
 	var margin_top: int = int(margins.y)
 	
-	# Get local position within the texture
-	var local_x: int = int(mb.position.x)
-	var local_y: int = int(mb.position.y)
+	# Get local position relative to the puzzle_display
+	var local_pos = puzzle_display.get_local_mouse_position()
 	
 	# Calculate grid position
-	var x: int = (local_x - margin_left) / cell_size
-	var y: int = (local_y - margin_top) / cell_size
+	var x: int = int(local_pos.x - margin_left) / cell_size
+	var y: int = int(local_pos.y - margin_top) / cell_size
 	
-	print("Click at: ", mb.position, " translated to grid: (", x, ", ", y, ")")
+	print("Click at: ", local_pos, " translated to grid: (", x, ", ", y, ")")
 	
+	# Check if click is within grid bounds
 	if x < 0 or y < 0 or x >= grid_w or y >= grid_h:
-		print("Click outside grid bounds")
+		print("Click outside grid bounds: ", x, ", ", y)
 		return
 	
 	# Toggle fill or mark empty
@@ -117,6 +130,18 @@ func _on_puzzle_clicked(event: InputEvent) -> void:
 	
 	print("Cell value changed to: ", player_grid[y][x])
 	_render_play_puzzle(data)
+	
+	# Add visual feedback for the click
+	var feedback = ColorRect.new()
+	feedback.color = Color(0.5, 0.5, 1.0, 0.3)  # Subtle blue flash
+	feedback.size = Vector2(cell_size, cell_size)
+	feedback.position = Vector2(margin_left + x * cell_size, margin_top + y * cell_size)
+	clue_layer.add_child(feedback)
+	
+	# Fade out and remove the feedback
+	var tween = create_tween()
+	tween.tween_property(feedback, "color:a", 0.0, 0.3)
+	tween.tween_callback(feedback.queue_free)
 
 # Load and initialize player grid
 func _load_player_grid_from_last_path() -> void:
@@ -179,7 +204,8 @@ func _compute_margins(row_clues: Array, col_clues: Array) -> Vector2:
 		if sz > max_cc:
 			max_cc = sz
 	
-	var margins = Vector2(max_rc * cell_size, max_cc * cell_size)
+	# Add a small buffer (1-2 pixels) to ensure clues are properly aligned
+	var margins = Vector2(max_rc * cell_size + 2, max_cc * cell_size + 2)
 	print("Calculated margins: ", margins)
 	return margins
 
@@ -193,6 +219,19 @@ func _render_play_puzzle(data: Dictionary) -> void:
 	var row_clues: Array = data.get("row_clues", [])
 	var col_clues: Array = data.get("col_clues", [])
 	_draw_puzzle_with_margins(player_grid, row_clues, col_clues)
+	
+	# Add a visual indicator that we're in play mode
+	var label = Label.new()
+	label.text = "Play Mode"
+	label.add_theme_color_override("font_color", Color(0.3, 0.8, 1.0))
+	label.position = Vector2(puzzle_display.size.x - 100, 10)
+	
+	# Remove old indicator if it exists
+	for child in clue_layer.get_children():
+		if child is Label and (child.text == "Play Mode" or child.text == "Solution View"):
+			child.queue_free()
+	
+	clue_layer.add_child(label)
 
 func _highlight_errors(data: Dictionary) -> void:
 	print("Highlighting errors...")
@@ -212,11 +251,32 @@ func _highlight_errors(data: Dictionary) -> void:
 			# Only mark cells that are filled or marked but incorrect
 			if player_grid[y][x] != -1 and solution[y][x] != player_grid[y][x]:
 				var mark = ColorRect.new()
-				mark.color = Color(1, 0, 0, 0.4)  # Semi-transparent red
-				mark.size = Vector2(cell_size, cell_size)
-				mark.position = Vector2(margins.x + x * cell_size, margins.y + y * cell_size)
+				# Make error highlight more visible
+				mark.color = Color(1, 0, 0, 0.7)  # More opaque red
+				mark.size = Vector2(cell_size - 2, cell_size - 2)  # Slightly smaller to show cell border
+				mark.position = Vector2(margins.x + x * cell_size + 1, margins.y + y * cell_size + 1)
 				clue_layer.add_child(mark)
 				error_count += 1
+	
+	# Provide visual feedback to the user
+	if error_count > 0:
+		var feedback = Label.new()
+		feedback.text = str(error_count) + " errors found"
+		feedback.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+		feedback.position = Vector2(10, 10)
+		clue_layer.add_child(feedback)
+		# Set a timer to remove the feedback after a few seconds
+		var timer = get_tree().create_timer(5.0)
+		timer.timeout.connect(func(): feedback.queue_free())
+	else:
+		var feedback = Label.new()
+		feedback.text = "Perfect! No errors found."
+		feedback.add_theme_color_override("font_color", Color(0.3, 1, 0.3))
+		feedback.position = Vector2(10, 10)
+		clue_layer.add_child(feedback)
+		# Set a timer to remove the feedback after a few seconds
+		var timer = get_tree().create_timer(5.0)
+		timer.timeout.connect(func(): feedback.queue_free())
 	
 	print("Found ", error_count, " errors in solution")
 
@@ -226,53 +286,62 @@ func _draw_puzzle_with_margins(grid: Array, row_clues: Array, col_clues: Array) 
 	var mt: int = int(margins.y)
 	var gw: int = grid[0].size()
 	var gh: int = grid.size()
+	
+	# Closer positioning with minimal margins
 	var img_w: int = ml + gw * cell_size
 	var img_h: int = mt + gh * cell_size
 	
 	var img = Image.create(img_w, img_h, false, Image.FORMAT_RGB8)
-	img.fill(Color(0.15, 0.15, 0.15))  # Slightly lighter background
+	# White background
+	img.fill(Color(1, 1, 1))
 	
-	# Draw grid cells
+	# Draw grid cells first (before lines)
 	for y in range(gh):
 		for x in range(gw):
 			var v: int = grid[y][x]
 			var col: Color
 			if v == 1:
-				col = Color.WHITE
+				col = Color(0, 0, 0)  # Black for filled cells
 			elif v == 0:
-				col = Color(0.4, 0.4, 0.4)
+				col = Color(0.8, 0.8, 0.8)  # Light gray for marked empty
 			else:
-				col = Color(0.2, 0.2, 0.2)  # Dark gray for unknown
+				col = Color(0.95, 0.95, 0.95)  # Almost white for unknown
 			
-			var bc: Color = Color(0.1, 0.1, 0.1)  # Border color
 			var ox: int = ml + x * cell_size
 			var oy: int = mt + y * cell_size
 			
-			# Draw 5x5 grid indicators for better readability
-			if x % 5 == 0 and x > 0:
-				for dy in range(cell_size):
-					var py: int = oy + dy
-					var px: int = ox
-					if px >= 0 and px < img_w and py >= 0 and py < img_h:
-						img.set_pixel(px-1, py, Color(0.05, 0.05, 0.05))
-			
-			if y % 5 == 0 and y > 0:
-				for dx in range(cell_size):
-					var px: int = ox + dx
-					var py: int = oy
-					if px >= 0 and px < img_w and py >= 0 and py < img_h:
-						img.set_pixel(px, py-1, Color(0.05, 0.05, 0.05))
-			
-			# Draw cell
-			for dy in range(cell_size):
-				for dx in range(cell_size):
+			# Draw cell interior (leave 1px border)
+			for dy in range(1, cell_size - 1):
+				for dx in range(1, cell_size - 1):
 					var px: int = ox + dx
 					var py: int = oy + dy
 					if px >= 0 and px < img_w and py >= 0 and py < img_h:
-						if dx == 0 or dx == cell_size - 1 or dy == 0 or dy == cell_size - 1:
-							img.set_pixel(px, py, bc)
-						else:
-							img.set_pixel(px, py, col)
+						img.set_pixel(px, py, col)
+	
+	# Draw grid lines
+	for x in range(gw + 1):
+		var line_x = ml + x * cell_size
+		for y in range(mt, mt + gh * cell_size + 1):
+			# Make 5x5 grid lines thicker
+			var line_width = 1
+			if x % 5 == 0:
+				line_width = 2
+			
+			for w in range(line_width):
+				if line_x - w >= 0 and line_x - w < img_w and y >= 0 and y < img_h:
+					img.set_pixel(line_x - w, y, Color(0.3, 0.3, 0.3))
+	
+	for y in range(gh + 1):
+		var line_y = mt + y * cell_size
+		for x in range(ml, ml + gw * cell_size + 1):
+			# Make 5x5 grid lines thicker
+			var line_width = 1
+			if y % 5 == 0:
+				line_width = 2
+			
+			for w in range(line_width):
+				if line_y - w >= 0 and line_y - w < img_h and x >= 0 and x < img_w:
+					img.set_pixel(x, line_y - w, Color(0.3, 0.3, 0.3))
 	
 	# Create texture from image
 	var tex = ImageTexture.create_from_image(img)
@@ -292,7 +361,7 @@ func _draw_clue_labels_with_margins(row_clues: Array, col_clues: Array, margins:
 	var gw: int = col_clues.size()
 	var gh: int = row_clues.size()
 	
-	# Draw row clues
+	# Draw row clues (right-aligned)
 	for y in range(gh):
 		var clues: Array = row_clues[y]
 		for i in range(clues.size()):
@@ -300,12 +369,16 @@ func _draw_clue_labels_with_margins(row_clues: Array, col_clues: Array, margins:
 			lbl.text = str(int(clues[clues.size() - 1 - i]))
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			lbl.add_theme_color_override("font_color", Color.WHITE)
+			lbl.add_theme_color_override("font_color", Color(0, 0, 0))  # Black text
 			lbl.size = Vector2(cell_size, cell_size)
-			lbl.position = Vector2(ml - (i + 1) * cell_size, mt + y * cell_size)
+			
+			# Position with minimal space between clues and grid
+			var xpos = ml - (i + 1) * cell_size
+			lbl.position = Vector2(xpos, mt + y * cell_size)
+			
 			clue_layer.add_child(lbl)
 	
-	# Draw column clues
+	# Draw column clues (bottom-aligned)
 	for x in range(gw):
 		var clues: Array = col_clues[x]
 		for i in range(clues.size()):
@@ -313,7 +386,11 @@ func _draw_clue_labels_with_margins(row_clues: Array, col_clues: Array, margins:
 			lbl.text = str(int(clues[clues.size() - 1 - i]))
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			lbl.add_theme_color_override("font_color", Color.WHITE)
+			lbl.add_theme_color_override("font_color", Color(0, 0, 0))  # Black text
 			lbl.size = Vector2(cell_size, cell_size)
-			lbl.position = Vector2(ml + x * cell_size, mt - (i + 1) * cell_size)
+			
+			# Position with minimal space between clues and grid
+			var ypos = mt - (i + 1) * cell_size
+			lbl.position = Vector2(ml + x * cell_size, ypos)
+			
 			clue_layer.add_child(lbl)

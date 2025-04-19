@@ -3,11 +3,12 @@
 importer="mp3"
 type="AudioStreamMP3"
 uid="uid://crdqw52nkedyb"
-valid=false
+path="res://.godot/imported/neon.skylines.mp3-9c916f7328d7f6f62d2aeb50de7a7cd9.mp3str"
 
 [deps]
 
 source_file="res://assets/music/neon.skylines.mp3"
+dest_files=["res://.godot/imported/neon.skylines.mp3-9c916f7328d7f6f62d2aeb50de7a7cd9.mp3str"]
 
 [params]
 
