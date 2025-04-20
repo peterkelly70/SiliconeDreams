@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://peuelk6s70h8"]
+[gd_scene load_steps=6 format=3 uid="uid://peuelk6s70h8"]
 
 [ext_resource type="Script" uid="uid://coifyai57kckn" path="res://scripts/nonogram_nonsense.gd" id="1_xc54c"]
 [ext_resource type="Texture2D" uid="uid://ccwn083im7gst" path="res://assets/images/splash.png" id="2_vcmai"]
 [ext_resource type="Script" uid="uid://cxpma4q5p6x65" path="res://scripts/puzzle_grid.gd" id="3_pb446"]
 [ext_resource type="Script" uid="uid://deaci7kw7klh7" path="res://scripts/clue_layer.gd" id="3_pgxxv"]
+[ext_resource type="PackedScene" uid="uid://br4tbp6mg5m02" path="res://scenes/puzzle_screen.tscn" id="4_elv7u"]
 
 [node name="NonogramNonsence" type="Control"]
 layout_mode = 3
@@ -71,17 +72,22 @@ expand_mode = 1
 [node name="Grid" type="GridContainer" parent="Puzzle"]
 z_index = 10
 layout_mode = 1
-offset_left = 475.0
-offset_top = 28.0
-offset_right = 591.0
-offset_bottom = 151.0
+offset_left = 532.0
+offset_top = 108.0
+offset_right = 1152.0
+offset_bottom = 649.0
 mouse_default_cursor_shape = 2
 script = ExtResource("3_pb446")
 
+[node name="PuzzleScreen" parent="Puzzle/Grid" instance=ExtResource("4_elv7u")]
+position = Vector2(-168.155, 300.791)
+
 [node name="Clues" type="Control" parent="Puzzle"]
 anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 480.0
+offset_top = 35.0
+offset_right = 1154.0
+offset_bottom = 650.0
 script = ExtResource("3_pgxxv")
 
 [node name="RowVBox" type="VBoxContainer" parent="Puzzle/Clues"]
