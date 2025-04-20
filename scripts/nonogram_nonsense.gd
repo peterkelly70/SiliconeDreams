@@ -2,79 +2,81 @@
 extends Control
 class_name NonogramNonsense
 
-# ───────── Layout Offset ─────────
-@export var origin : Vector2 = Vector2(0, 0)  # top-left corner of puzzle & clues
+# ───────── Layout Offset & Config ─────────
+@export var MENU_MARGIN : int     = 20
+@export var GRID_W      : int     = 10   # columns
+@export var GRID_H      : int     = 15   # rows
+@export var CELL_SIZE   : int     = 24   # pixel size per cell
 
-# ──────────────────────── Config ─────────────────────────
-@export var GRID_W     : int = 10   # columns
-@export var GRID_H     : int = 15   # rows
-@export var CELL_SIZE  : int = 24   # pixel size per cell
-@export var MENU_MARGIN: int = 20   # space between menu and puzzle
+# ───────── Scene references ─────────
+@onready var menu_container : Control    = $Menu
+@onready var btn_generate    : Button     = $Menu/GenerateBTN
+@onready var btn_play        : Button     = $Menu/PlayBTN
+@onready var btn_check       : Button     = $Menu/CheckBTN
+@onready var btn_solve       : Button     = $Menu/SolveBTN
 
-# ───────── Scene nodes ──────────────────────
-@onready var btn_generate : Button     = $Menu/GenerateBTN
-@onready var btn_play     : Button     = $Menu/PlayBTN
-@onready var btn_check    : Button     = $Menu/CheckBTN
-@onready var btn_solve    : Button     = $Menu/SolveBTN
+@onready var preview         : TextureRect = $Puzzle/PreviewRect
+@onready var clues           : ClueLayer   = $Puzzle/Clues
+@onready var grid            : PuzzleGrid  = $Puzzle/Grid
 
-@onready var preview      : TextureRect = $Puzzle/PreviewRect
-@onready var grid         : PuzzleGrid  = $Puzzle/Grid
-@onready var clues        : ClueLayer   = $Puzzle/Clues
 
 # ───────── Runtime data ─────────
-var current_grid : Array[int] = []   # flat 0/1 ints
-var row_clues    : Array      = []   # row clue arrays
-var col_clues    : Array      = []   # column clue arrays
+var current_grid : Array[int] = []
+var row_clues    : Array      = []
+var col_clues    : Array      = []
 
 func _ready() -> void:
-	# calculate origin to the right of the menu
-	var menu_width = $Menu.get_size().x
-	origin = Vector2(menu_width + MENU_MARGIN, 0)
-	# position preview and grid at origin
-	preview.position = origin
-	grid.position    = origin
+	# compute origin to the right of the menu
+	var menu_size := menu_container.get_size()
+	var origin := Vector2(menu_size.x + MENU_MARGIN, 0)
 
+	# position layers
+	preview.position = origin
+	clues.position   = origin
+	grid.position    = origin
+	preview.z_index  = 0
+	clues.z_index    = 1
+	grid.z_index     = 2
+
+	# initial visibility
 	preview.show()
 	grid.hide()
 
+	# wire buttons
 	btn_generate.pressed.connect(_on_generate)
 	btn_play.pressed.connect(_on_play)
 	btn_check.pressed.connect(_on_check)
 	btn_solve.pressed.connect(_on_solve)
 
-# ───────── Menu handlers ─────────
 func _on_generate() -> void:
 	_build_random_puzzle()
 
-	# draw 1px-per-cell base image
+	# generate 1px-per-cell image and scale nearest-neighbor
 	var img := Image.create(GRID_W, GRID_H, false, Image.FORMAT_L8)
 	for y in range(GRID_H):
 		for x in range(GRID_W):
 			img.set_pixel(x, y, Color.BLACK if current_grid[y * GRID_W + x] else Color.WHITE)
-	# scale up with nearest neighbor for crisp pixels
 	img.resize(GRID_W * CELL_SIZE, GRID_H * CELL_SIZE, Image.INTERPOLATE_NEAREST)
 
-	var tex := ImageTexture.create_from_image(img)
-	preview.texture      = tex
-	# ensure the preview rect matches exact size
-	preview.custom_minimum_size = Vector2(GRID_W, GRID_H) * CELL_SIZE
-	preview.stretch_mode        = TextureRect.STRETCH_KEEP
-	preview.position            = origin
+	preview.texture = ImageTexture.create_from_image(img)
+	preview.custom_minimum_size = Vector2(GRID_W * CELL_SIZE, GRID_H * CELL_SIZE)
 	preview.show()
-
-	# update clues around the preview
-	
-	clues.set_clues(row_clues, col_clues)
 	grid.hide()
+
+	# draw clues around preview
+	clues.position = preview.position
+	clues.set_clues(row_clues, col_clues)
 
 func _on_play() -> void:
 	preview.hide()
-	grid.position = origin
+	grid.position = preview.position
 	grid.show()
 	grid.build_grid(current_grid, GRID_W, GRID_H)
-	
-	clues.set_clues(row_clues, col_clues)
 	grid.reset_cells()
+
+	# draw clues around grid
+	clues.position = grid.position
+	clues.set_clues(row_clues, col_clues)
 
 func _on_check() -> void:
 	grid.show_wrong_cells()
@@ -82,13 +84,13 @@ func _on_check() -> void:
 func _on_solve() -> void:
 	grid.reveal_solution()
 
-# ───────── Internals ─────────
 func _build_random_puzzle() -> void:
+	# fill flat array
 	current_grid.resize(GRID_W * GRID_H)
 	for i in range(current_grid.size()):
 		current_grid[i] = int(randf() < 0.5)
 
-	# compute row/col clues
+	# build matrix for clues
 	var mat : Array = []
 	for y in range(GRID_H):
 		var start := y * GRID_W
@@ -101,7 +103,7 @@ func _compute_clues(mat : Array) -> Array:
 	var out : Array = []
 	for line in mat:
 		var res : Array = []
-		var cnt : int = 0
+		var cnt := 0
 		for v in line:
 			if v == 1:
 				cnt += 1
@@ -119,8 +121,8 @@ func _transpose(mat : Array) -> Array:
 	var out : Array = []
 	if mat.is_empty():
 		return out
-	var w : int = (mat[0] as Array).size()
-	var h : int = mat.size()
+	var w := (mat[0] as Array).size()
+	var h := mat.size()
 	for x in range(w):
 		var col : Array = []
 		for y in range(h):
