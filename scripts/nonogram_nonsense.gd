@@ -2,47 +2,32 @@
 extends Control
 class_name NonogramNonsense
 
-# ───────── Layout Offset & Config ─────────
-@export var MENU_MARGIN : int     = 20
-@export var GRID_W      : int     = 10   # columns
-@export var GRID_H      : int     = 15   # rows
-@export var CELL_SIZE   : int     = 24   # pixel size per cell
+# ─────────────────────── Config ─────────────────────────
+@export var GRID_W     : int = 10   # number of columns
+@export var GRID_H     : int = 10   # number of rows
+@export var CELL_SIZE  : int = 24   # pixel size per cell
 
-# ───────── Scene references ─────────
-@onready var menu_container : Control    = $Menu
-@onready var btn_generate    : Button     = $Menu/GenerateBTN
-@onready var btn_play        : Button     = $Menu/PlayBTN
-@onready var btn_check       : Button     = $Menu/CheckBTN
-@onready var btn_solve       : Button     = $Menu/SolveBTN
+# ───────── Scene references ─────────────────────────
+@onready var btn_generate : Button      = $Menu/GenerateBTN
+@onready var btn_play     : Button      = $Menu/PlayBTN
+@onready var btn_check    : Button      = $Menu/CheckBTN
+@onready var btn_solve    : Button      = $Menu/SolveBTN
 
-@onready var preview         : TextureRect = $Puzzle/PreviewRect
-@onready var clues           : ClueLayer   = $Puzzle/Clues
-@onready var grid            : PuzzleGrid  = $Puzzle/Grid
+@onready var preview      : TextureRect = $Puzzle/PreviewRect
+@onready var grid         : PuzzleGrid  = $Puzzle/Grid
+@onready var clues        : ClueLayer   = $Puzzle/Clues
 
-
-# ───────── Runtime data ─────────
-var current_grid : Array[int] = []
-var row_clues    : Array      = []
-var col_clues    : Array      = []
+# ───────── Runtime data ─────────────────────────
+var current_grid : Array[int] = []  # flat array of 0/1
+var row_clues    : Array      = []  # row clues
+var col_clues    : Array      = []  # column clues
 
 func _ready() -> void:
-	# compute origin to the right of the menu
-	var menu_size := menu_container.get_size()
-	var origin := Vector2(menu_size.x + MENU_MARGIN, 0)
-
-	# position layers
-	preview.position = origin
-	clues.position   = origin
-	grid.position    = origin
-	preview.z_index  = 0
-	clues.z_index    = 1
-	grid.z_index     = 2
-
-	# initial visibility
+	# show preview on generate, hide grid initially
 	preview.show()
 	grid.hide()
 
-	# wire buttons
+	# connect menu buttons
 	btn_generate.pressed.connect(_on_generate)
 	btn_play.pressed.connect(_on_play)
 	btn_check.pressed.connect(_on_check)
@@ -51,32 +36,28 @@ func _ready() -> void:
 func _on_generate() -> void:
 	_build_random_puzzle()
 
-	# generate 1px-per-cell image and scale nearest-neighbor
+	# draw a 1px-per-cell image and scale nearest-neighbor
 	var img := Image.create(GRID_W, GRID_H, false, Image.FORMAT_L8)
 	for y in range(GRID_H):
 		for x in range(GRID_W):
 			img.set_pixel(x, y, Color.BLACK if current_grid[y * GRID_W + x] else Color.WHITE)
 	img.resize(GRID_W * CELL_SIZE, GRID_H * CELL_SIZE, Image.INTERPOLATE_NEAREST)
 
-	preview.texture = ImageTexture.create_from_image(img)
+	var tex := ImageTexture.create_from_image(img)
+	preview.texture = tex
 	preview.custom_minimum_size = Vector2(GRID_W * CELL_SIZE, GRID_H * CELL_SIZE)
 	preview.show()
 	grid.hide()
 
-	# draw clues around preview
-	clues.position = preview.position
+	# update clues around preview
 	clues.set_clues(row_clues, col_clues)
 
 func _on_play() -> void:
 	preview.hide()
-	grid.position = preview.position
-	grid.show()
 	grid.build_grid(current_grid, GRID_W, GRID_H)
-	grid.reset_cells()
-
-	# draw clues around grid
-	clues.position = grid.position
 	clues.set_clues(row_clues, col_clues)
+	grid.reset_cells()
+	grid.show()
 
 func _on_check() -> void:
 	grid.show_wrong_cells()
@@ -85,12 +66,12 @@ func _on_solve() -> void:
 	grid.reveal_solution()
 
 func _build_random_puzzle() -> void:
-	# fill flat array
+	# random flat grid
 	current_grid.resize(GRID_W * GRID_H)
 	for i in range(current_grid.size()):
 		current_grid[i] = int(randf() < 0.5)
 
-	# build matrix for clues
+	# build 2D matrix for clues
 	var mat : Array = []
 	for y in range(GRID_H):
 		var start := y * GRID_W
@@ -108,8 +89,7 @@ func _compute_clues(mat : Array) -> Array:
 			if v == 1:
 				cnt += 1
 			elif cnt > 0:
-				res.append(str(cnt))
-				cnt = 0
+				res.append(str(cnt)); cnt = 0
 		if cnt > 0:
 			res.append(str(cnt))
 		if res.is_empty():
