@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="SiliconeDreams"
+config/name="NonogramNonsense"
 run/main_scene="uid://dc0aiw8pt4k0q"
 config/features=PackedStringArray("4.4")
 

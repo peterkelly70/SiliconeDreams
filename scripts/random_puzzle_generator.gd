@@ -1,26 +1,57 @@
-extends Node
+extends Object
+class_name RandomPuzzleGenerator
 
-# Entry point for standalone test
-func _ready() -> void:
-	randomize()
-	generate_and_save_random_puzzle(15, 15)
+# Public API: returns a flat Array of bools, length = width*height
+func generate(width: int, height: int) -> Array:
+	var grid2d = _generate_binary_grid(width, height)
+	var flat: Array = []
+	for row in grid2d:
+		for cell in row:
+			flat.append(cell == 1)
+	return flat
 
-# Step 1: Create a random binary grid
-func generate_binary_grid(width: int, height: int) -> Array:
-	var grid := []  # Array of Array[int]
+# Optional: build clues and save 2D grid + clues as JSON
+func generate_and_save_random_puzzle(width: int, height: int) -> String:
+	var grid2d = _generate_binary_grid(width, height)
+	var clues = compute_clue_sets(grid2d)
+	var puzzle_data = {
+		"width": width,
+		"height": height,
+		"grid": grid2d,
+		"row_clues": clues["row_clues"],
+		"col_clues": clues["col_clues"]
+	}
+	var ts = Time.get_unix_time_from_system()
+	var filename = "user://puzzles/random_puzzle_%d.json" % ts
+
+	var dir = DirAccess.open("user://")
+	if dir and not dir.dir_exists("puzzles"):
+		dir.make_dir_recursive("puzzles")
+
+	var f = FileAccess.open(filename, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(puzzle_data, "\t"))
+		f.close()
+		return filename
+	return ""
+
+#--- private helpers -------------------------------------------------------
+
+func _generate_binary_grid(width: int, height: int) -> Array:
+	var grid: Array = []
 	for y in range(height):
-		var row := []  # Array[int]
+		var row: Array = []
 		for x in range(width):
+			# Python‑style ternary: 1 if <50% else 0
 			row.append(1 if randf() < 0.5 else 0)
 		grid.append(row)
 	return grid
 
-# Step 2: Compute clues from a line of 1s and 0s
-func compute_clues(line: Array) -> Array:
-	var clues := []  # Array[int]
+func _compute_clues(line: Array) -> Array:
+	var clues: Array = []
 	var count := 0
-	for cell in line:
-		if cell == 1:
+	for v in line:
+		if v == 1:
 			count += 1
 		elif count > 0:
 			clues.append(count)
@@ -31,55 +62,21 @@ func compute_clues(line: Array) -> Array:
 		clues.append(0)
 	return clues
 
-# Step 3: Compute all row and column clues from the grid
 func compute_clue_sets(grid: Array) -> Dictionary:
-	var width: int = (grid[0] as Array).size()
-	var height: int = grid.size()
-
-	var row_clues := []  # Array of Array[int]
-	var col_clues := []  # Array of Array[int]
+	var h = grid.size()
+	var w = (grid[0] as Array).size()
+	var row_clues: Array = []
+	var col_clues: Array = []
 
 	for row in grid:
-		row_clues.append(compute_clues(row))
+		row_clues.append(_compute_clues(row))
 
-	for x in range(width):
-		var col := []
-		for y in range(height):
+	for x in range(w):
+		var col: Array = []
+		for y in range(h):
 			col.append(grid[y][x])
-		col_clues.append(compute_clues(col))
-
+		col_clues.append(_compute_clues(col))
 	return {
 		"row_clues": row_clues,
 		"col_clues": col_clues
 	}
-
-# Step 4: Save puzzle to JSON and return the filename
-func generate_and_save_random_puzzle(width: int, height: int) -> String:
-	var grid := generate_binary_grid(width, height)
-	var clues := compute_clue_sets(grid)
-
-	var puzzle_data := {
-		"width": width,
-		"height": height,
-		"grid": grid,
-		"row_clues": clues["row_clues"],
-		"col_clues": clues["col_clues"]
-	}
-
-	var timestamp: int = Time.get_unix_time_from_system()
-	var filename: String = "user://puzzles/random_puzzle_%d.json" % timestamp
-
-	var dir := DirAccess.open("user://")
-	if dir and not dir.dir_exists("puzzles"):
-		var err := dir.make_dir_recursive("puzzles")
-		print("Created puzzles directory. Result:", err)
-
-	var file := FileAccess.open(filename, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(puzzle_data, "\t"))  # Pretty print
-		file.close()
-		print("✅ Saved puzzle to:", filename)
-		return filename
-	else:
-		printerr("❌ Could not write puzzle to:", filename)
-		return ""
