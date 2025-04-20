@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://cah8bgjh1ugeo"]
+
+[ext_resource type="Script" uid="uid://ssdfpevu4efn" path="res://scripts/puzzle_cell.gd" id="1_tkt4y"]
+
+[node name="PuzzleCell" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_tkt4y")

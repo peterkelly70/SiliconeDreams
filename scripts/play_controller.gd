@@ -1,45 +1,51 @@
-# PlayController.gd
-extends Control
-class_name PlayController
+extends Node
+class_name PlayerController     # rename if you prefer PlayController
 
-var renderer  # will hold a reference to PuzzleController
+# ------------------------------------------------------------------
+# State
+# ------------------------------------------------------------------
+var puzzle_controller : Node = null        # reference to the active PuzzleController
+var is_play_mode      : bool = false
 
-func start_play(rend) -> void:
-	renderer = rend
-	set_process_unhandled_input(true)
+# ------------------------------------------------------------------
+# Called from NonogramNonsense when the user hits “Play”
+# ------------------------------------------------------------------
+func start_play(controller : Node) -> void:
+	puzzle_controller = controller
+	is_play_mode      = true
 
+	if puzzle_controller == null:
+		push_error("PlayerController: start_play called with null controller")
+		return
+
+	if not puzzle_controller.has_method("cells"):
+		push_error("PlayerController: controller has no 'cells' array")
+		return
+
+	var cell_array : Array = puzzle_controller.cells
+	for cell in cell_array:
+		# Enable mouse interactions (left click handled inside PuzzleController)
+		cell.set_mouse_filter(Control.MOUSE_FILTER_STOP)
+
+# ------------------------------------------------------------------
+# Called by NonogramNonsense when user generates / loads a new puzzle
+# or when “Reset” is required
+# ------------------------------------------------------------------
 func reset_selections() -> void:
-	if not renderer:
-		return
-	for i in range(renderer.user_selection.size()):
-		renderer.user_selection[i] = false
-		renderer.cells[i].selected = false
-		renderer.cells[i].queue_redraw()
+	is_play_mode = false
 
-func _unhandled_input(ev):
-	if not renderer:
+	if puzzle_controller == null:
 		return
-	if ev is InputEventMouseMotion:
-		_highlight(ev.position)
-	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-		_toggle(ev.position)
 
-func _highlight(pos: Vector2) -> void:
-	for cell in renderer.cells:
+	var cell_array : Array = puzzle_controller.cells
+	var selection  : Array = puzzle_controller.user_selection
+
+	var count : int = cell_array.size()
+	for i in range(count):
+		var cell = cell_array[i]
 		cell.selected = false
-	for i in range(renderer.cells.size()):
-		var cell = renderer.cells[i]
-		if cell.get_global_rect().has_point(pos):
-			cell.selected = true
-			cell.queue_redraw()
-			break
+		cell.clear_error()
+		selection[i]  = false
 
-func _toggle(pos: Vector2) -> void:
-	for i in range(renderer.cells.size()):
-		var cell = renderer.cells[i]
-		if cell.get_global_rect().has_point(pos):
-			var new_state = not renderer.user_selection[i]
-			renderer.user_selection[i] = new_state
-			cell.selected = new_state
-			cell.queue_redraw()
-			break
+		# Disable mouse interaction when not in play mode
+		cell.set_mouse_filter(Control.MOUSE_FILTER_IGNORE)

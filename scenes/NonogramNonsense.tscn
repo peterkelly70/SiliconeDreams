@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://peuelk6s70h8"]
+[gd_scene load_steps=7 format=3 uid="uid://peuelk6s70h8"]
 
 [ext_resource type="Script" uid="uid://coifyai57kckn" path="res://scripts/nonogram_nonsense.gd" id="1_xc54c"]
 [ext_resource type="Texture2D" uid="uid://ccwn083im7gst" path="res://assets/images/splash.png" id="2_vcmai"]
 [ext_resource type="Script" uid="uid://k15dfyglbx4h" path="res://scripts/play_controller.gd" id="3_pb446"]
+[ext_resource type="Script" uid="uid://deaci7kw7klh7" path="res://scripts/clue_layer.gd" id="3_pgxxv"]
 [ext_resource type="Script" uid="uid://b3i6g3tp827gs" path="res://scripts/puzzle_controller.gd" id="3_vcmai"]
+[ext_resource type="Script" uid="uid://bjntpaqwbrysx" path="res://scripts/check_controller.gd" id="5_elv7u"]
 
 [node name="NonogramNonsence" type="Control"]
 layout_mode = 3
@@ -20,6 +22,7 @@ offset_right = 40.0
 offset_bottom = 40.0
 
 [node name="PreviewRect" type="TextureRect" parent="Puzzle"]
+z_index = 4
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -46,6 +49,13 @@ offset_top = 28.0
 offset_right = 591.0
 offset_bottom = 151.0
 mouse_default_cursor_shape = 2
+script = ExtResource("3_pgxxv")
+
+[node name="PuzzleController" type="Control" parent="Puzzle"]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("3_vcmai")
 
 [node name="Menu" type="VBoxContainer" parent="."]
 layout_mode = 0
@@ -83,12 +93,6 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("3_pb446")
 
-[node name="PuzzleController" type="Control" parent="."]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("3_vcmai")
-
 [node name="LoadController" type="Control" parent="."]
 anchors_preset = 0
 offset_right = 40.0
@@ -98,5 +102,6 @@ offset_bottom = 40.0
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+script = ExtResource("5_elv7u")
 
 [node name="PuzzleLoaderDialog" type="FileDialog" parent="."]
